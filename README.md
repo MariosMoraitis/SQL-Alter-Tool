@@ -21,15 +21,15 @@ dialect-correct `.sql` scripts.
   issue number (`ORA_<issue>.sql`, `MsSQL_<issue>.sql`, `DB2_<issue>.sql`).
 
 ## Project structure
-sql_alter_tool/
-├── gui.py # customtkinter GUI, entry point
-├── service.py # writes the .sql files for all 3 dialects
-└── databases/
-    ├── init.py
-    ├── database_syntax.py # shared base class: type/length conversion
-    ├── oracle.py
-    ├── mssql.py
-    └── db2.py
+    sql_alter_tool/
+    ─ gui.py # customtkinter GUI, entry point
+    ─ service.py # writes the .sql files for all 3 dialects
+    ─ databases/
+        ── init.py
+        ── database_syntax.py # shared base class: type/length conversion
+        ── oracle.py
+        ── mssql.py
+        ── db2.py
 
 
 ## Requirements

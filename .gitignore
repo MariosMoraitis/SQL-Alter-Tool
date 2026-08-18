@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+env/
+
+# PyInstaller
+build/
+dist/
+*.spec.bak
+
+# Generated DDL scripts produced by service.py at runtime
+*.sql
+*.INFO
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Code signing material - NEVER commit these
+*.pfx
+*.p12
+*.pem
+*.key
+codesign_password.txt

@@ -98,13 +98,3 @@ Verify it worked:
 ```powershell
 signtool verify /pa dist\SQLAlterTool\SQLAlterTool.exe
 ```
-
-## 4. (Optional) Automate it in CI
-
-`.github/workflows/build.yml` in this repo builds the exe on every tag
-push. To also sign it in CI, store the `.pfx` (base64-encoded) and its
-password as GitHub Actions **encrypted secrets**, decode it in a step,
-run `signtool`, then delete the decoded file before the job ends. Ask me
-if you want that step written out — it's a few extra lines but security-
-sensitive enough that I'd rather set it up explicitly with you than have
-you copy-paste blind.

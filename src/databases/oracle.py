@@ -2,8 +2,8 @@ from .database_syntax import DatabaseSyntax
 
 class Oracle(DatabaseSyntax):
 
-    def __init__(self, table_name, columns, action, issue):
-          super().__init__(table_name, columns, action, issue)
+    def __init__(self, table_name, columns, action, issue, include_spool):
+        super().__init__(table_name, columns, action, issue, include_spool)
 
     def __str__(self):
         defs = self.column_definition()
@@ -14,11 +14,10 @@ class Oracle(DatabaseSyntax):
             items = ',\n'.join(f'  {d}' for d in defs)
             sql = f'{self.action} (\n{items}\n);' 
 
-        return f"""
-SPOOL ORA_{self.issue}.INFO
+        spool_str = f"SPOOL Oracle_{self.issue}.INFO" if self.include_spool else ""    
+        return f"""{spool_str}
 ALTER TABLE {self.table_name}
 {sql}
-COMMIT;
-SPOOL OFF
+COMMIT;{self.spool_off}
 EXIT;
 """

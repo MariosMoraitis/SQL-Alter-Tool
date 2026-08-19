@@ -13,9 +13,13 @@ Features:
 - Dynamic list of columns to add/drop
     -> when "ADD" is selected, each column also gets a data type field
     -> when "DROP" is selected, only the column name is needed
+- Options popup: output path + "Include Spool" Yes/No
 - RUN button collects everything into ready-to-use Python variables
-  (table_name, issue_number, action, columns)
+  (table_name, issue_number, action, columns, output_path, include_spool)
 """
+
+import os
+from tkinter import filedialog
 
 import customtkinter as ctk
 from service import calculate_n_write
@@ -109,7 +113,7 @@ class ColumnRow(ctk.CTkFrame):
         if not length_str.isdigit():
             if data_type != "NUMBER":
                 raise ValueError(f"Column '{col_name}': length must be a whole number.")
-            
+
             _int, _dec = length_str.split(".")
             if int(_dec) >= int(_int):
                 raise ValueError(f"Column '{col_name}': invalid SQL decimal syntax! Decimal number ({_dec}) should be smaller than the integer ({_int}) .")
@@ -125,6 +129,79 @@ class ColumnRow(ctk.CTkFrame):
         }
 
 
+class OptionsPopup(ctk.CTkToplevel):
+    """
+    Popup for run-level options:
+      - output path (folder the generated .sql files get written to)
+      - "Include Spool" Yes/No
+
+    on_done is called with (output_path: str, include_spool: bool) once
+    the user clicks "Done", after which the popup closes itself.
+    """
+
+    def __init__(self, master, current_output_path, current_include_spool, on_done):
+        super().__init__(master)
+        self.on_done = on_done
+
+        self.title("Options")
+        self.geometry("460x220")
+        self.resizable(False, False)
+
+        # Keep it modal-ish: stays on top of the main window, grabs input focus
+        self.transient(master)
+        self.grab_set()
+
+        self.output_path_var = ctk.StringVar(value=current_output_path)
+        self.include_spool_var = ctk.StringVar(
+            value="Yes" if current_include_spool else "No"
+        )
+
+        # ---------- Output path ----------
+        path_frame = ctk.CTkFrame(self, fg_color="transparent")
+        path_frame.pack(fill="x", padx=20, pady=(20, 10))
+
+        ctk.CTkButton(
+            path_frame, text="Select output path", command=self._select_output_path
+        ).pack(side="left")
+
+        self.path_label = ctk.CTkLabel(
+            path_frame, textvariable=self.output_path_var,
+            wraplength=280, justify="left", anchor="w"
+        )
+        self.path_label.pack(side="left", padx=(10, 0), fill="x", expand=True)
+
+        # ---------- Include Spool ----------
+        spool_frame = ctk.CTkFrame(self, fg_color="transparent")
+        spool_frame.pack(fill="x", padx=20, pady=10)
+
+        ctk.CTkLabel(spool_frame, text="Include Spool:").pack(side="left", padx=(0, 15))
+        ctk.CTkRadioButton(
+            spool_frame, text="Yes", variable=self.include_spool_var, value="Yes"
+        ).pack(side="left", padx=10)
+        ctk.CTkRadioButton(
+            spool_frame, text="No", variable=self.include_spool_var, value="No"
+        ).pack(side="left", padx=10)
+
+        # ---------- Done ----------
+        ctk.CTkButton(
+            self, text="Done", height=38, font=ctk.CTkFont(weight="bold"),
+            command=self._done
+        ).pack(fill="x", padx=20, pady=(20, 20))
+
+    def _select_output_path(self):
+        selected = filedialog.askdirectory(
+            title="Select output path", initialdir=self.output_path_var.get() or os.getcwd()
+        )
+        if selected:  # user might cancel, leaving it empty - keep the previous value in that case
+            self.output_path_var.set(selected)
+
+    def _done(self):
+        output_path = self.output_path_var.get().strip()
+        include_spool = self.include_spool_var.get() == "Yes"
+        self.on_done(output_path, include_spool)
+        self.destroy()
+
+
 class SQLAlterApp(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -135,9 +212,26 @@ class SQLAlterApp(ctk.CTk):
 
         self.column_rows = []
 
+        # Options, defaulted until the user opens the popup and hits Done
+        self.output_path = os.getcwd()
+        self.include_spool = True
+
+        # ---------- Header: title + Options button ----------
+        header_frame = ctk.CTkFrame(self, fg_color="transparent")
+        header_frame.pack(fill="x", padx=20, pady=(20, 0))
+
+        ctk.CTkLabel(
+            header_frame, text="SQL Table Alteration Automation",
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(side="left")
+
+        ctk.CTkButton(
+            header_frame, text="Options", width=90, command=self.open_options
+        ).pack(side="right")
+
         # ---------- Header info fields ----------
         info_frame = ctk.CTkFrame(self)
-        info_frame.pack(fill="x", padx=20, pady=(20, 10))
+        info_frame.pack(fill="x", padx=20, pady=(10, 10))
 
         ctk.CTkLabel(info_frame, text="Table Name:").grid(row=0, column=0, sticky="w", padx=10, pady=8)
         self.table_name_entry = ctk.CTkEntry(info_frame, placeholder_text="e.g. dbo.CUSTOMERS", width=280)
@@ -214,6 +308,20 @@ class SQLAlterApp(ctk.CTk):
         self.column_rows.remove(row)
 
     # ------------------------------------------------------------------
+    def open_options(self):
+        OptionsPopup(
+            self,
+            current_output_path=self.output_path,
+            current_include_spool=self.include_spool,
+            on_done=self.set_options,
+        )
+
+    def set_options(self, output_path, include_spool):
+        self.output_path = output_path
+        self.include_spool = include_spool
+        self._log(f"Options updated -> output_path: {self.output_path}, include_spool: {self.include_spool}")
+
+    # ------------------------------------------------------------------
     def run(self):
         """
         Collect everything into ready-to-use variables.
@@ -249,25 +357,24 @@ class SQLAlterApp(ctk.CTk):
         # These are the variables ready for you to use in your
         # automation / delivery to your service:
         #
-        #   table_name    -> str
-        #   issue_number  -> str
-        #   action        -> "ADD" or "DROP"
-        #   columns       -> list of dicts:
-        #                    ADD:  {"column_name": ..., "data_type": ..., "length": ...}
-        #                    DROP: {"column_name": ...}
+        #   table_name      -> str
+        #   issue_number    -> str
+        #   action          -> "ADD" or "DROP"
+        #   columns         -> list of dicts:
+        #                      ADD:  {"column_name": ..., "data_type": ..., "length": ...}
+        #                      DROP: {"column_name": ...}
+        #   self.output_path    -> str  (folder to write the .sql files into)
+        #   self.include_spool  -> bool (whether to include SPOOL lines)
         # ==========================================================
 
-        # self._log(f"Table:  {table_name}")
-        # self._log(f"Issue:  {issue_number}")
-        # self._log(f"Action: {action}")
-        # self._log(f"Columns: {columns}")
-        # self._log("-" * 50)
         try:
             calculate_n_write(
                 table_name=table_name.upper(),
                 issue=issue_number.upper(),
                 columns=columns,
-                action=action
+                action=action,
+                path=self.output_path,          # wire these into service.py
+                include_spool=self.include_spool # once it accepts them
             )
             self._log('DONE!!!')
         except Exception as e:
@@ -276,6 +383,7 @@ class SQLAlterApp(ctk.CTk):
     def _log(self, text):
         self.output_box.insert("end", text + "\n")
         self.output_box.see("end")
+
 
 if __name__ == "__main__":
     app = SQLAlterApp()

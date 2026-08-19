@@ -2,8 +2,8 @@ from .database_syntax import DatabaseSyntax
 
 class MsSQL(DatabaseSyntax):
 
-    def __init__(self, table_name, columns, action, issue):
-        super().__init__(table_name, columns, action, issue)
+    def __init__(self, table_name, columns, action, issue, include_spool):
+        super().__init__(table_name, columns, action, issue, include_spool)
 
         self.data_types["TIMESTAMP"] = "DATETIME2"
 
@@ -16,8 +16,8 @@ class MsSQL(DatabaseSyntax):
         else:
             sql = f"DROP COLUMN\n   {col_list}"
 
-        return f"""
---SPOOL MsSQL_{self.issue}.INFO;
+        spool_str = f"--SPOOL MsSQL_{self.issue}.INFO" if self.include_spool else ""
+        return f"""{spool_str}
 BEGIN TRAN;
     ALTER TABLE {self.table_name} {sql}
     COMMIT TRAN;

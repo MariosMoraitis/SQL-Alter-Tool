@@ -1,10 +1,13 @@
 class DatabaseSyntax:
 
-    def __init__(self, table_name:str, columns, action:str, issue:str):
+    def __init__(self, table_name:str, columns, action:str, issue:str, include_spool:bool):
         self.table_name = table_name
         self.columns = columns
         self.action = action
         self.issue = issue
+        self.include_spool = include_spool
+
+        self.spool_off = "\nSPOOL OFF" if self.include_spool else ""
 
         self.data_types: dict[str,str] = {
             "TEXT": "CHAR",

@@ -28,3 +28,6 @@ Thumbs.db
 *.pem
 *.key
 codesign_password.txt
+
+# Updater cache
+.update_check_cache

@@ -1,3 +1,4 @@
+import time
 import json
 import shutil
 import tempfile
@@ -11,6 +12,20 @@ CURRENT_VERSION_FILE = Path(__file__).parent.parent / "VERSION"
 # Files/folders never to touch, even if they exist in the zip
 PRESERVE = {"VERSION", ".venv", "venv", "__pycache__", ".git"}
 
+CACHE_FILE = Path(__file__).parent.parent / ".update_check_cache"
+CHECK_INTERVAL = 60 * 60 * 6    # 6 hours
+
+def should_check() -> bool:
+
+    if not CACHE_FILE.exists():
+        return True
+
+    las_check = float(CACHE_FILE.read_text().strip() or 0)
+    return (time.time() - las_check) > CHECK_INTERVAL
+
+def mark_checked():
+    CACHE_FILE.write_text(str(time.time()))
+
 def get_current_version() -> str:
 
     if CURRENT_VERSION_FILE.exists():
@@ -21,12 +36,21 @@ def get_current_version() -> str:
 def get_latest_release() -> dict:
 
     url = f"https://api.github.com/repos/{REPO}/releases/latest"
-    with urllib.request.urlopen(url, timeout=5) as resp:
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "sql-alter-tool-updater"}
+    )
+    with urllib.request.urlopen(req, timeout=5) as resp:
         return json.load(resp)
 
 def download_n_extract(zip_url: str, dest_dir: Path):
 
-    with urllib.request.urlopen(zip_url, timeout=30) as resp:
+    req = urllib.request.Request(
+        zip_url,
+        headers={"User-Agent": "sql-alter-tool-updater"}
+    )
+
+    with urllib.request.urlopen(req, timeout=30) as resp:
         data = resp.read()
 
     zip_path = dest_dir / "update.zip"
@@ -58,6 +82,9 @@ def update():
     current = get_current_version()
     print(f'Current version: {current}')
 
+    if not should_check():
+        return
+    
     print("Checking for updates...")
     try:
         release = get_latest_release()

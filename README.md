@@ -19,18 +19,29 @@ dialect-correct `.sql` scripts.
   identifiers, MSSQL's `DATETIME2` vs. its reserved `TIMESTAMP` keyword).
 - Outputs spooled, transaction-wrapped scripts per database, named by
   issue number (`ORA_<issue>.sql`, `MsSQL_<issue>.sql`, `DB2_<issue>.sql`).
+- Checks GitHub for a newer version on startup (silently skips if offline
+  or rate-limited — never blocks the app from launching).
 
 ## Project structure
-    sql_alter_tool/
-    ─ gui.py # customtkinter GUI, entry point
-    ─ service.py # writes the .sql files for all 3 dialects
-    ─ databases/
-        ── init.py
-        ── database_syntax.py # shared base class: type/length conversion
-        ── oracle.py
-        ── mssql.py
-        ── db2.py
 
+    sql-alter-tool/
+    ├── VERSION                  # current version, e.g. "1.0.0"
+    ├── src/
+    │   ├── main.py               # entry point - runs update check, then launches GUI
+    │   ├── gui.py                # customtkinter GUI
+    │   ├── service.py            # writes the .sql files for all 3 dialects
+    │   ├── updater.py            # checks GitHub releases for a newer version
+    │   └── databases/
+    │       ├── __init__.py
+    │       ├── database_syntax.py   # shared base class: type/length conversion
+    │       ├── oracle.py
+    │       ├── mssql.py
+    │       └── db2.py
+    ├── requirements.txt
+    ├── requirements-build.txt
+    ├── build.spec
+    ├── version_info.txt
+    └── BUILD.md
 
 ## Requirements
 
@@ -50,8 +61,13 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-python sql_alter_tool/gui.py
+python src/main.py
 ```
+
+On launch, `main.py` runs a quick update check against GitHub Releases
+(see [Updating](#updating) below) and then opens the GUI regardless of
+the outcome — a failed or rate-limited check never prevents the app from
+starting.
 
 1. Enter the **table name** and **issue number**.
 2. Choose **ADD** or **DROP**.
@@ -74,6 +90,19 @@ python sql_alter_tool/gui.py
 
 > MSSQL's own `TIMESTAMP` keyword is a row-versioning binary type, not a
 > date/time type — the tool substitutes `DATETIME2` automatically.
+
+## Updating
+
+The app is version-tracked via the plain-text `VERSION` file at the repo
+root, compared against the latest GitHub release tag. `src/updater.py`
+handles this check; `main.py` calls it once at startup, in a way that
+never interrupts the app if it fails (offline, GitHub rate limit, etc.).
+
+GitHub's unauthenticated API allows 60 requests/hour per IP — plenty for
+normal use, but easy to burn through while actively developing/testing.
+If you hit `HTTP 403: rate limit exceeded`, it's this quota, not a bug;
+check `https://api.github.com/rate_limit` (doesn't count against the
+quota) to see when it resets.
 
 ## Building a Windows executable
 

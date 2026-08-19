@@ -3,6 +3,7 @@ import json
 import shutil
 import tempfile
 import urllib.request
+import urllib.error
 import zipfile
 from pathlib import Path
 
@@ -35,23 +36,39 @@ def get_current_version() -> str:
 
 def get_latest_release() -> dict:
 
-    url = f"https://api.github.com/repos/{REPO}/releases/latest"
-    req = urllib.request.Request(
-        url,
-        headers={"User-Agent": "sql-alter-tool-updater"}
-    )
-    with urllib.request.urlopen(req, timeout=5) as resp:
-        return json.load(resp)
+    try:
+        url = f"https://api.github.com/repos/{REPO}/releases/latest"
+        req = urllib.request.Request(
+            url,
+            headers={"User-Agent": "sql-alter-tool-updater"}
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return json.load(resp)
+
+    except urllib.error.HTTPError as e:
+        print("Status:", e.code)    
+        print("Remaining:", e.headers.get("X-RateLimit-Remaining"))
+        print("Reset at (unix):", e.headers.get("X-RateLimit-Reset"))
+        print("Body:", e.read().decode())
+        raise
 
 def download_n_extract(zip_url: str, dest_dir: Path):
 
-    req = urllib.request.Request(
-        zip_url,
-        headers={"User-Agent": "sql-alter-tool-updater"}
-    )
+    try:
+        req = urllib.request.Request(
+            zip_url,
+            headers={"User-Agent": "sql-alter-tool-updater"}
+        )
 
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data = resp.read()
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = resp.read()
+
+    except urllib.error.HTTPError as e:
+            print("Status:", e.code)    
+            print("Remaining:", e.headers.get("X-RateLimit-Remaining"))
+            print("Reset at (unix):", e.headers.get("X-RateLimit-Reset"))
+            print("Body:", e.read().decode())
+            raise
 
     zip_path = dest_dir / "update.zip"
     zip_path.write_bytes(data)
@@ -84,7 +101,8 @@ def update():
 
     if not should_check():
         return
-    
+
+    mark_checked()
     print("Checking for updates...")
     try:
         release = get_latest_release()

@@ -11,6 +11,7 @@ class DatabaseSyntax:
 
         self.data_types: dict[str,str] = {
             "TEXT": "CHAR",
+            "VARCHAR": "VARCHAR",
             "DATE": "DATE",
             "TIMESTAMP": "TIMESTAMP",
             "NUMBER": "NUMERIC"

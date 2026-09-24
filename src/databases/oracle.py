@@ -5,6 +5,8 @@ class Oracle(DatabaseSyntax):
     def __init__(self, table_name, columns, action, issue, include_spool):
         super().__init__(table_name, columns, action, issue, include_spool)
 
+        self.data_types["VARCHAR"] = "VARCHAR2"
+
     def __str__(self):
         defs = self.column_definition()
 

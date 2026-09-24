@@ -32,6 +32,7 @@ ctk.set_default_color_theme("blue")
 # Variable-length types (None) let the user type in the length themselves.
 DATA_TYPES = {
     "TEXT": None,
+    "VARCHAR": None,
     "DATE": 8,
     "TIMESTAMP": 20,
     "NUMBER": None,

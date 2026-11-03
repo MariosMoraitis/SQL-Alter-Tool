@@ -20,6 +20,7 @@ class MsSQL(DatabaseSyntax):
         return f"""{spool_str}
 BEGIN TRAN;
     ALTER TABLE {self.table_name} {sql}
+    ;
     COMMIT TRAN;
 GO
 """

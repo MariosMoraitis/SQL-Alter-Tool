@@ -60,6 +60,19 @@ pip install -r requirements.txt
 
 ## Usage
 
+On Linux, run the launcher from the project directory:
+
+```bash
+sh SQL-Alter-Tool.sh
+```
+
+It creates a `.venv` and installs or updates the requirements when needed.
+Python 3.10 or newer must be installed on the system.
+
+On Windows, run `SQL-Alter-Tool.bat`.
+
+To launch directly from an already configured environment:
+
 ```bash
 python src/main.py
 ```
